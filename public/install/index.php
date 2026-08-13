@@ -175,7 +175,7 @@ switch ($step) {
 			}
 			// 设置字符集
 			$mysqli->query("SET NAMES 'utf8'");
-			if ($mysqli->server_info < 5.0) {
+			if (version_compare(preg_replace('/[^0-9.].*$/', '', $mysqli->server_info), '5.0', '<')) {
 				alert(0,'请将您的mysql升级到5.0以上');
 			}
 			// 创建数据库并选中

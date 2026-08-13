@@ -92,8 +92,8 @@ class Tool extends QfShop
             return [];
         }
     
-        // 使用 ThinkPHP 提供的 runtime_path() 函数获取 runtime 目录路径
-        $cacheDir = runtime_path('cache'); // runtime/cache 目录
+        // 使用 root_path() 拼出与首页读取一致的缓存目录，避免读写路径不一致导致抓取的数据无法命中
+        $cacheDir = root_path('runtime/api/cache'); // runtime/api/cache 目录
         if (!is_dir($cacheDir)) {
             mkdir($cacheDir, 0755, true); // 确保缓存目录存在
         }

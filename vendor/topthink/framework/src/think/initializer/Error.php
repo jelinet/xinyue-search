@@ -72,12 +72,24 @@ class Error
      */
     public function appError(int $errno, string $errstr, string $errfile = '', int $errline = 0): void
     {
-        $exception = new ErrorException($errno, $errstr, $errfile, $errline);
-
-        if (error_reporting() & $errno) {
-            // 将错误信息托管至 think\exception\ErrorException
-            throw $exception;
+        if (!(error_reporting() & $errno)) {
+            return;
         }
+
+        // 非致命错误（含 PHP8.2+ 的 Deprecated 提示）仅记录日志，不中断请求
+        $nonFatal = [E_DEPRECATED, E_USER_DEPRECATED, E_NOTICE, E_USER_NOTICE, E_WARNING, E_USER_WARNING, E_STRICT];
+
+        if (in_array($errno, $nonFatal, true)) {
+            try {
+                $this->app->log->record("{$errstr} [{$errfile}:{$errline}]", 'notice');
+            } catch (Throwable $e) {
+                // 日志系统尚未就绪时忽略
+            }
+            return;
+        }
+
+        // 将错误信息托管至 think\exception\ErrorException
+        throw new ErrorException($errno, $errstr, $errfile, $errline);
     }
 
     /**

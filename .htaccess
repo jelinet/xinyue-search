@@ -1,0 +1,20 @@
+# InfinityFree 等无法自定义 DocumentRoot 的虚拟主机适配：
+# 域名根目录实际指向本项目根目录（而不是 public/），
+# 这里把请求转发到 public/ 下，模拟"public 作为网站根目录"的效果。
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 已登录到 public/ 内部的请求（含内部转发产生的）不再重复处理
+    RewriteCond %{REQUEST_URI} ^/public/ [NC]
+    RewriteRule ^ - [L]
+
+    # 请求对应 public/ 下真实存在的文件或目录（如静态资源），直接转发到该文件
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -d
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # 其余请求（页面路由）转发给 public/index.php，由框架自身的路由处理
+    RewriteRule ^(.*)$ public/index.php/$1 [L]
+</IfModule>

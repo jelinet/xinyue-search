@@ -251,24 +251,34 @@
                 showUrlFun(item);
             } else {
                 app.dialogLoading = true;
-                axios.post('/api/other/save_url', {
-                    url: encodeURIComponent(item.url),
-                    title: item.title
-                }).then(res => {
-                    if (res.data.code == 200) {
-                        item.url = res.data.data.url
-                        item.showUrl = res.data.data.url
-                    } else {
-                        item.showUrl = ''
-                        item.message = res.data.message
-                    }
+                requestSaveUrl(item, 0);
+            }
+        }
+
+        function requestSaveUrl(item, attempt) {
+            const maxAttempts = 20; // 最多轮询20次
+            const pollInterval = 1500; // 每次间隔1.5秒
+            axios.post('/api/other/save_url', {
+                url: encodeURIComponent(item.url),
+                title: item.title
+            }).then(res => {
+                if (res.data.code == 200) {
+                    item.url = res.data.data.url
+                    item.showUrl = res.data.data.url
                     app.dialogLoading = false;
                     showUrlFun(item)
+                } else if (res.data.code == 202 && attempt < maxAttempts) {
+                    setTimeout(() => requestSaveUrl(item, attempt + 1), pollInterval);
+                } else {
+                    item.showUrl = ''
+                    item.message = res.data.code == 202 ? '资源处理超时，请稍后重试' : res.data.message
+                    app.dialogLoading = false;
+                    showUrlFun(item)
+                }
+            })
+                .catch(err => {
+                    app.dialogLoading = false
                 })
-                    .catch(err => {
-                        app.dialogLoading = false
-                    })
-            }
         }
 
         function showUrlFun(item) {

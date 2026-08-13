@@ -27,7 +27,7 @@ class Other extends QfShop
     public function web_search()
     {
         // 设置 SSE 响应头
-        header('Content-Type: text/event-stream');
+        header('Content-Type: text/event-stream; charset=utf-8');
         header('Cache-Control: no-cache');
         header('Connection: keep-alive');
         header('X-Accel-Buffering: no'); // 防止 Nginx 缓冲
@@ -896,19 +896,9 @@ class Other extends QfShop
             return jok('临时资源获取成功', Cache::get($keys));
         }
 
-        // 检查是否有正在处理的请求
+        // 检查是否有正在处理的请求：交给前端短轮询，避免占用后端进程原地等待
         if (Cache::has($keys . '_processing')) {
-            // 如果当前正在处理相同关键词的请求，等待结果
-            $startTime = time(); // 记录开始时间
-            while (Cache::has($keys . '_processing')) {
-                usleep(1000000); // 暂停1秒
-
-                // 检查是否超过60秒
-                if (time() - $startTime > 60) {
-                    return jok('临时资源获取成功', []);
-                }
-            }
-            return jok('临时资源获取成功', Cache::get($keys));
+            return jerr('资源正在处理中，请稍候...', 202);
         }
 
         // 设置处理状态为正在处理

@@ -108,35 +108,39 @@ class Tool extends QfShop
             $data = json_decode(file_get_contents($cacheFile), true);
         } else {
             $data = [];
-            if (!empty($channel)) {
-                $queryParams =  array(
-                    "area" =>  "全部",
-                    "year" =>  "全部",
-                    "channel" =>  $channel,
-                    "rank_type" =>  "最热",
-                    "cate" =>  "全部",
-                    "from" =>  "hot_page",
-                    "start" =>  0,
-                    "hit" =>  Config('qfshop.ranking_num') ?? 1,
-                );
-                $res = curlHelper("https://biz.quark.cn/api/trending/ranking/getYingshiRanking", "GET", null, [], $queryParams)['body'];
-                $res = json_decode($res, true);
-                try {
-                    foreach ($res['data']['hits']['hit']['item'] as $key => $value) {
-                        $data[] = array(
-                            "title" => $value['title']??'',
-                            "src" => $value['src']??'',
-                            "ranking" => $value['ranking']??'',
-                            "hot_score" => $value['hot_score']??'',
-                            "desc" => $value['desc']??'',
-                        );
-                    }
-                } catch (Exception $error) {
-                    $data = [];
+            $queryParams =  array(
+                "area" =>  "全部",
+                "year" =>  "全部",
+                "channel" =>  $channel,
+                "rank_type" =>  "最热",
+                "cate" =>  "全部",
+                "from" =>  "hot_page",
+                "start" =>  0,
+                "hit" =>  Config('qfshop.ranking_num') ?? 1,
+            );
+            $res = curlHelper("https://biz.quark.cn/api/trending/ranking/getYingshiRanking", "GET", null, [], $queryParams)['body'];
+            $res = json_decode($res, true);
+            try {
+                foreach ($res['data']['hits']['hit']['item'] as $key => $value) {
+                    $data[] = array(
+                        "title" => $value['title']??'',
+                        "src" => $value['src']??'',
+                        "ranking" => $value['ranking']??'',
+                        "hot_score" => $value['hot_score']??'',
+                        "desc" => $value['desc']??'',
+                    );
                 }
-    
-                // 将数据缓存到文件中
+            } catch (\Throwable $error) {
+                $data = [];
+            }
+
+            if (!empty($data)) {
+                // 抓取成功才覆盖缓存
                 file_put_contents($cacheFile, json_encode($data));
+            } elseif (file_exists($cacheFile)) {
+                // 本次抓取夸克接口失败或无返回数据：沿用上一次抓取成功的缓存，
+                // 避免把空结果覆盖进缓存导致前台空白长达 12 小时
+                $data = json_decode(file_get_contents($cacheFile), true);
             }
         }
         
